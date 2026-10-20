@@ -28,6 +28,7 @@ type Session struct {
 	tracing          bool
 	autoFetch        bool   // Auto-fetch all pages without scroll pauses
 	username         string // Current connection username
+	datacenter       string // Local datacenter for DC-aware routing (empty = driver default)
 	cassandraVersion string
 	schemaCache      *SchemaCache
 	udtRegistry      *UDTRegistry
@@ -90,6 +91,7 @@ type SessionOptions struct {
 	Username        string
 	Password        string
 	Consistency     string // Default consistency level (e.g., "LOCAL_ONE", "QUORUM")
+	Datacenter      string // Local datacenter for DC-aware routing (empty = driver default)
 	SSL             *config.SSLConfig
 	BatchMode       bool   // Skip schema caching for batch mode
 	ConnectTimeout  int    // Connection timeout in seconds (0 = use default)
@@ -118,6 +120,25 @@ func (c *customLogger) Error(msg string, fields ...gocql.LogField)   {}
 func (c *customLogger) Warning(msg string, fields ...gocql.LogField) {}
 func (c *customLogger) Info(msg string, fields ...gocql.LogField)    {}
 func (c *customLogger) Debug(msg string, fields ...gocql.LogField)   {}
+
+// applyHostPolicy pins the local datacenter on the cluster when one is
+// configured, wrapping the DC-aware policy in the token-aware policy so gocql's
+// default token-aware routing is kept while coordinator selection is restricted
+// to the named datacenter. A no-op when datacenter is empty, leaving gocql's
+// default policy in place.
+//
+// It builds a new policy on every call because gocql's token-aware policy may
+// not be shared between sessions: each CreateSession on the cluster takes
+// ownership of the policy set here, so a session recreated on the same cluster
+// (the protocol-version fallback loop, SetKeyspace) needs its own.
+func applyHostPolicy(cluster *gocql.ClusterConfig, datacenter string) {
+	if datacenter == "" {
+		return
+	}
+	cluster.PoolConfig.HostSelectionPolicy = gocql.TokenAwareHostPolicy(
+		gocql.DCAwareRoundRobinPolicy(datacenter),
+	)
+}
 
 // NewSessionWithOptions creates a new Cassandra session with command-line overrides.
 func NewSessionWithOptions(options SessionOptions) (*Session, error) {
@@ -159,6 +180,10 @@ func NewSessionWithOptions(options SessionOptions) (*Session, error) {
 	if options.Keyspace != "" {
 		cfg.Keyspace = options.Keyspace
 		logger.DebugfToFile("Session", "Overriding keyspace with command-line option: %s", options.Keyspace)
+	}
+	if options.Datacenter != "" {
+		cfg.Datacenter = options.Datacenter
+		logger.DebugfToFile("Session", "Overriding datacenter with command-line option: %s", options.Datacenter)
 	}
 	if options.Username != "" {
 		cfg.Username = options.Username
@@ -249,6 +274,11 @@ func NewSessionWithOptions(options SessionOptions) (*Session, error) {
 
 	for _, protoVer := range protocolVersions {
 		cluster.ProtoVersion = protoVer
+		// A fresh host-selection policy for every attempt: gocql's token-aware
+		// policy may not be shared between sessions, and each CreateSession -
+		// including the failed ones in this fallback loop - takes ownership of
+		// the one on the cluster.
+		applyHostPolicy(cluster, cfg.Datacenter)
 		session, err = cluster.CreateSession()
 		if err == nil {
 			// Successfully connected
@@ -334,6 +364,7 @@ func NewSessionWithOptions(options SessionOptions) (*Session, error) {
 		pageSize:         pageSize,
 		tracing:          false,
 		username:         cfg.Username,
+		datacenter:       cfg.Datacenter,
 		cassandraVersion: releaseVersion,
 	}
 
@@ -613,7 +644,9 @@ func (s *Session) SetKeyspace(keyspace string) error {
 	// Update cluster config with new keyspace
 	s.cluster.Keyspace = keyspace
 
-	// Create new session with the new keyspace
+	// Create new session with the new keyspace. A fresh host-selection policy:
+	// the one the closed session took ownership of may not be reused.
+	applyHostPolicy(s.cluster, s.datacenter)
 	newSession, err := s.cluster.CreateSession()
 	if err != nil {
 		return fmt.Errorf("failed to create session with keyspace %s: %w", keyspace, err)

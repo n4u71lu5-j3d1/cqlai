@@ -28,7 +28,7 @@ func TestAConnectionIsNamedAfterItsHostWhenItIsNotNamed(t *testing.T) {
 // format beside every host.
 func TestAConnectionKeepsTheConnectionSettingsAndNothingElse(t *testing.T) {
 	kept := ConnectionSettings(Config{
-		Host: "10.0.0.1", Port: 9042, Keyspace: "shop", Username: "ada", Password: "secret",
+		Host: "10.0.0.1", Port: 9042, Keyspace: "shop", Datacenter: "dc1", Username: "ada", Password: "secret",
 		ConnectTimeout: 5, RequestTimeout: 10,
 		SSL: &SSLConfig{Enabled: true, CAPath: "/etc/ca.pem"},
 
@@ -39,6 +39,7 @@ func TestAConnectionKeepsTheConnectionSettingsAndNothingElse(t *testing.T) {
 
 	assert.Equal(t, "10.0.0.1", kept.Host)
 	assert.Equal(t, "shop", kept.Keyspace)
+	assert.Equal(t, "dc1", kept.Datacenter)
 	assert.Equal(t, "/etc/ca.pem", kept.SSL.CAPath)
 
 	assert.Zero(t, kept.PageSize)
@@ -72,11 +73,12 @@ func TestUsingAConnectionMakesItTheOneCqlaiStartsWith(t *testing.T) {
 		SSL: &SSLConfig{Enabled: true},
 	}
 
-	cfg.UseConnection(Config{Name: "production", Host: "10.0.0.1", Port: 9042})
+	cfg.UseConnection(Config{Name: "production", Host: "10.0.0.1", Port: 9042, Datacenter: "dc1"})
 
 	assert.Equal(t, "production", cfg.Name)
 	assert.Equal(t, "10.0.0.1", cfg.Host)
 	assert.Equal(t, 9042, cfg.Port)
+	assert.Equal(t, "dc1", cfg.Datacenter, "the connection's datacenter becomes the shell's")
 	assert.Empty(t, cfg.Username, "the connection has none, so neither has the shell")
 	assert.Nil(t, cfg.SSL, "the connection is not over TLS")
 	assert.Equal(t, 500, cfg.PageSize, "everything that is not the connection is left alone")
@@ -86,7 +88,7 @@ func TestUsingAConnectionMakesItTheOneCqlaiStartsWith(t *testing.T) {
 func TestConnectionsAreWrittenToTheFileAndReadBack(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "cqlai.json")
 	cfg := &Config{SourcePath: path, Host: "10.0.0.1", PageSize: 100}
-	cfg.SaveConnection(Config{Name: "production", Host: "10.0.0.1", Port: 9042})
+	cfg.SaveConnection(Config{Name: "production", Host: "10.0.0.1", Port: 9042, Datacenter: "dc1"})
 	cfg.SaveConnection(Config{Host: "10.0.1.1"})
 
 	written, err := cfg.Save()
@@ -96,12 +98,14 @@ func TestConnectionsAreWrittenToTheFileAndReadBack(t *testing.T) {
 	data, err := os.ReadFile(path) //nolint:gosec // the test wrote it
 	require.NoError(t, err)
 	assert.Contains(t, string(data), `"connections"`)
+	assert.Contains(t, string(data), `"datacenter": "dc1"`)
 
 	read := &Config{}
 	require.NoError(t, json.Unmarshal(data, read))
 	require.Len(t, read.Connections, 2)
 	assert.Equal(t, "production", read.Connections[0].Name)
 	assert.Equal(t, 9042, read.Connections[0].Port)
+	assert.Equal(t, "dc1", read.Connections[0].Datacenter)
 	assert.Equal(t, "10.0.1.1", read.Connections[1].Name, "named after its host")
 
 	// A connection holds no connections of its own.

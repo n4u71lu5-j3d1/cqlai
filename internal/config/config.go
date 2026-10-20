@@ -22,6 +22,7 @@ type Config struct {
 	Host                string     `json:"host,omitempty"`
 	Port                int        `json:"port,omitempty"`
 	Keyspace            string     `json:"keyspace,omitempty"`
+	Datacenter          string     `json:"datacenter,omitempty"` // Local datacenter for DC-aware routing
 	Username            string     `json:"username,omitempty"`
 	Password            string     `json:"password,omitempty"`
 	RequireConfirmation bool       `json:"requireConfirmation,omitempty"`
@@ -324,6 +325,13 @@ func OverrideWithEnvVars(config *Config) {
 	}
 	if keyspace := os.Getenv("CQLAI_KEYSPACE"); keyspace != "" {
 		config.Keyspace = keyspace
+	}
+
+	if dc := os.Getenv("CASSANDRA_LOCAL_DC"); dc != "" {
+		config.Datacenter = dc
+	}
+	if dc := os.Getenv("CQLAI_DATACENTER"); dc != "" {
+		config.Datacenter = dc
 	}
 
 	if username := os.Getenv("CASSANDRA_USERNAME"); username != "" {

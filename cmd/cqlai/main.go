@@ -59,6 +59,7 @@ func main() {
 		host                  string
 		port                  int
 		keyspace              string
+		datacenter            string
 		username              string
 		password              string
 		noConfirm             bool
@@ -94,6 +95,7 @@ func main() {
 	pflag.BoolVar(&sslNoHostVerification, "no-ssl-host-verification", false, "Disable SSL hostname verification")
 	pflag.BoolVar(&sslInsecureSkipVerify, "ssl-insecure-skip-verify", false, "Skip SSL certificate verification (not recommended for production)")
 	pflag.StringVar(&consistency, "consistency", "", "Default consistency level (e.g., ONE, QUORUM, LOCAL_QUORUM)")
+	pflag.StringVar(&datacenter, "datacenter", "", "Local datacenter for DC-aware routing (overrides config)")
 	pflag.StringVar(&configFile, "config-file", "", "Path to config file (overrides default locations)")
 
 	// Batch mode flags (compatible with cqlsh)
@@ -200,6 +202,11 @@ func main() {
 	if keyspace == "" {
 		if envKeyspace := os.Getenv("CQLAI_KEYSPACE"); envKeyspace != "" {
 			keyspace = envKeyspace
+		}
+	}
+	if datacenter == "" {
+		if envDatacenter := os.Getenv("CQLAI_DATACENTER"); envDatacenter != "" {
+			datacenter = envDatacenter
 		}
 	}
 	if username == "" {
@@ -315,6 +322,7 @@ func main() {
 		Host:                  host,
 		Port:                  port,
 		Keyspace:              keyspace,
+		Datacenter:            datacenter,
 		Username:              username,
 		Password:              password,
 		RequireConfirmation:   !noConfirm,

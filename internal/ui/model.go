@@ -26,6 +26,7 @@ type ConnectionOptions struct {
 	Host                  string
 	Port                  int
 	Keyspace              string
+	Datacenter            string // Local datacenter for DC-aware routing
 	Username              string
 	Password              string
 	RequireConfirmation   bool
@@ -379,6 +380,9 @@ func NewMainModelWithConnectionOptions(options ConnectionOptions) (*MainModel, e
 	if options.Keyspace != "" {
 		cfg.Keyspace = options.Keyspace
 	}
+	if options.Datacenter != "" {
+		cfg.Datacenter = options.Datacenter
+	}
 	if options.Username != "" {
 		cfg.Username = options.Username
 	}
@@ -422,6 +426,7 @@ func NewMainModelWithConnectionOptions(options ConnectionOptions) (*MainModel, e
 		Host:           cfg.Host,
 		Port:           cfg.Port,
 		Keyspace:       cfg.Keyspace,
+		Datacenter:     cfg.Datacenter,
 		Username:       cfg.Username,
 		Password:       cfg.Password,
 		Consistency:    cfg.Consistency,

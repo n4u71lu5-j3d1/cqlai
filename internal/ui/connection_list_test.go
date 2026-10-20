@@ -69,7 +69,7 @@ func TestChoosingAConnectionShowsItsSettings(t *testing.T) {
 	m := connectModel(t, &config.Config{
 		Connections: []config.Config{
 			{Name: "production", Host: "10.0.0.1", Keyspace: "shop"},
-			{Name: "staging", Host: "10.0.1.1", Keyspace: "trial"},
+			{Name: "staging", Host: "10.0.1.1", Keyspace: "trial", Datacenter: "dc-west"},
 		},
 	})
 
@@ -78,6 +78,7 @@ func TestChoosingAConnectionShowsItsSettings(t *testing.T) {
 	assert.Equal(t, "staging", prefFieldValue(t, m, "Name"))
 	assert.Equal(t, "10.0.1.1", prefFieldValue(t, m, "Host"))
 	assert.Equal(t, "trial", prefFieldValue(t, m, "Keyspace"))
+	assert.Equal(t, "dc-west", prefFieldValue(t, m, "Datacenter"))
 }
 
 // TestWhatWasTypedIsKeptWhenAnotherConnectionIsChosen.

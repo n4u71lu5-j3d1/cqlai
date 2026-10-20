@@ -75,6 +75,9 @@ func NewExecutor(options *Options, writer io.Writer) (*Executor, error) {
 	if options.ConnOptions.Keyspace != "" {
 		cfg.Keyspace = options.ConnOptions.Keyspace
 	}
+	if options.ConnOptions.Datacenter != "" {
+		cfg.Datacenter = options.ConnOptions.Datacenter
+	}
 	if options.ConnOptions.Username != "" {
 		cfg.Username = options.ConnOptions.Username
 	}
@@ -118,6 +121,7 @@ func NewExecutor(options *Options, writer io.Writer) (*Executor, error) {
 		Host:           cfg.Host,
 		Port:           cfg.Port,
 		Keyspace:       cfg.Keyspace,
+		Datacenter:     cfg.Datacenter,
 		Username:       cfg.Username,
 		Password:       cfg.Password,
 		Consistency:    cfg.Consistency,

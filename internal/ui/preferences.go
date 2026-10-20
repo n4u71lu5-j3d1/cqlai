@@ -102,6 +102,7 @@ func prefSpecs() []prefSpec {
 		{section: "CONNECTION", path: "Host", label: "Host", kind: prefText, hint: "the node cqlai connects to"},
 		{path: "Port", label: "Port", kind: prefNumber, hint: "9042 unless the cluster was moved"},
 		{path: "Keyspace", label: "Keyspace", kind: prefText, hint: "the keyspace to start in"},
+		{path: "Datacenter", label: "Datacenter", kind: prefText, hint: "local datacenter for DC-aware routing; empty uses the driver default"},
 		{path: "Username", label: "Username", kind: prefText, hint: "left empty when the cluster has no authentication"},
 		{path: "Password", label: "Password", kind: prefSecret, hint: "kept in the file, which is written readable only by you"},
 		{path: "ConnectTimeout", label: "Connect timeout", kind: prefNumber, hint: "seconds to wait for the connection"},

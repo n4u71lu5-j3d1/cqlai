@@ -37,6 +37,7 @@ func ConnectionSettings(conn Config) Config {
 		Host:            conn.Host,
 		Port:            conn.Port,
 		Keyspace:        conn.Keyspace,
+		Datacenter:      conn.Datacenter,
 		Username:        conn.Username,
 		Password:        conn.Password,
 		ConnectTimeout:  conn.ConnectTimeout,
@@ -121,6 +122,7 @@ func (c *Config) UseConnection(conn Config) {
 	c.Host = conn.Host
 	c.Port = conn.Port
 	c.Keyspace = conn.Keyspace
+	c.Datacenter = conn.Datacenter
 	c.Username = conn.Username
 	c.Password = conn.Password
 	c.ConnectTimeout = conn.ConnectTimeout

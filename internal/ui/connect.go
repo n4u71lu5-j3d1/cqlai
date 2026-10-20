@@ -77,6 +77,7 @@ func (m *MainModel) connectWith(save bool) (*MainModel, tea.Cmd) {
 		Host:            cfg.Host,
 		Port:            cfg.Port,
 		Keyspace:        cfg.Keyspace,
+		Datacenter:      cfg.Datacenter,
 		Username:        cfg.Username,
 		Password:        cfg.Password,
 		Consistency:     cfg.Consistency,
